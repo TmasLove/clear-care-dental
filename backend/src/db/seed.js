@@ -2,6 +2,11 @@
 
 require('dotenv').config();
 
+if (process.env.NODE_ENV === 'production') {
+  console.error('ERROR: Seed script cannot run in production environment.');
+  process.exit(1);
+}
+
 const bcrypt = require('bcryptjs');
 const { query, pool } = require('../config/database');
 

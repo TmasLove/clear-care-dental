@@ -1,4 +1,25 @@
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// expo-secure-store uses hardware-backed keychain on iOS/Android (native only).
+// On web, fall back to AsyncStorage (sessionStorage-backed in browsers).
+const isWeb = Platform.OS === 'web';
+
+const store = {
+  async get(key) {
+    if (isWeb) return AsyncStorage.getItem(key);
+    return SecureStore.getItemAsync(key);
+  },
+  async set(key, value) {
+    if (isWeb) return AsyncStorage.setItem(key, value);
+    return SecureStore.setItemAsync(key, value);
+  },
+  async remove(key) {
+    if (isWeb) return AsyncStorage.removeItem(key);
+    return SecureStore.deleteItemAsync(key);
+  },
+};
 
 const KEYS = {
   TOKEN: 'clear_care_token',
@@ -8,104 +29,55 @@ const KEYS = {
 
 export const storage = {
   async getToken() {
-    try {
-      return await SecureStore.getItemAsync(KEYS.TOKEN);
-    } catch {
-      return null;
-    }
+    try { return await store.get(KEYS.TOKEN); } catch { return null; }
   },
-
   async setToken(token) {
-    try {
-      await SecureStore.setItemAsync(KEYS.TOKEN, token);
-    } catch (e) {
-      console.error('Failed to save token', e);
-    }
+    try { await store.set(KEYS.TOKEN, token); } catch (e) { console.error('Failed to save token', e); }
   },
-
   async removeToken() {
-    try {
-      await SecureStore.deleteItemAsync(KEYS.TOKEN);
-    } catch (e) {
-      console.error('Failed to remove token', e);
-    }
+    try { await store.remove(KEYS.TOKEN); } catch (e) { console.error('Failed to remove token', e); }
   },
 
   async getUser() {
     try {
-      const json = await SecureStore.getItemAsync(KEYS.USER);
+      const json = await store.get(KEYS.USER);
       return json ? JSON.parse(json) : null;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   },
-
   async setUser(user) {
-    try {
-      await SecureStore.setItemAsync(KEYS.USER, JSON.stringify(user));
-    } catch (e) {
-      console.error('Failed to save user', e);
-    }
+    try { await store.set(KEYS.USER, JSON.stringify(user)); } catch (e) { console.error('Failed to save user', e); }
   },
-
   async removeUser() {
-    try {
-      await SecureStore.deleteItemAsync(KEYS.USER);
-    } catch (e) {
-      console.error('Failed to remove user', e);
-    }
+    try { await store.remove(KEYS.USER); } catch (e) { console.error('Failed to remove user', e); }
   },
 
   async getRefreshToken() {
-    try {
-      return await SecureStore.getItemAsync(KEYS.REFRESH_TOKEN);
-    } catch {
-      return null;
-    }
+    try { return await store.get(KEYS.REFRESH_TOKEN); } catch { return null; }
   },
-
   async setRefreshToken(token) {
-    try {
-      await SecureStore.setItemAsync(KEYS.REFRESH_TOKEN, token);
-    } catch (e) {
-      console.error('Failed to save refresh token', e);
-    }
+    try { await store.set(KEYS.REFRESH_TOKEN, token); } catch (e) { console.error('Failed to save refresh token', e); }
   },
 
   async clearAll() {
     try {
       await Promise.all([
-        SecureStore.deleteItemAsync(KEYS.TOKEN),
-        SecureStore.deleteItemAsync(KEYS.USER),
-        SecureStore.deleteItemAsync(KEYS.REFRESH_TOKEN),
+        store.remove(KEYS.TOKEN),
+        store.remove(KEYS.USER),
+        store.remove(KEYS.REFRESH_TOKEN),
       ]);
-    } catch (e) {
-      console.error('Failed to clear storage', e);
-    }
+    } catch (e) { console.error('Failed to clear storage', e); }
   },
 
   async setItem(key, value) {
     try {
       const serialized = typeof value === 'string' ? value : JSON.stringify(value);
-      await SecureStore.setItemAsync(key, serialized);
-    } catch (e) {
-      console.error(`Failed to set ${key}`, e);
-    }
+      await store.set(key, serialized);
+    } catch (e) { console.error(`Failed to set ${key}`, e); }
   },
-
   async getItem(key) {
-    try {
-      return await SecureStore.getItemAsync(key);
-    } catch {
-      return null;
-    }
+    try { return await store.get(key); } catch { return null; }
   },
-
   async removeItem(key) {
-    try {
-      await SecureStore.deleteItemAsync(key);
-    } catch (e) {
-      console.error(`Failed to remove ${key}`, e);
-    }
+    try { await store.remove(key); } catch (e) { console.error(`Failed to remove ${key}`, e); }
   },
 };

@@ -3,7 +3,13 @@ require('dotenv').config();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  // PRODUCTION: Set SSL_CA_CERT env var to path of RDS CA certificate bundle.
+  ssl: process.env.NODE_ENV === 'production'
+    ? {
+        rejectUnauthorized: true,
+        ...(process.env.SSL_CA_CERT && { ca: require('fs').readFileSync(process.env.SSL_CA_CERT) }),
+      }
+    : false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
@@ -16,8 +22,8 @@ pool.on('connect', () => {
 });
 
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle PostgreSQL client', err);
-  process.exit(-1);
+  console.error('Unexpected error on idle PostgreSQL client:', err.message);
+  // Do not exit — pg pool will attempt reconnection
 });
 
 const query = async (text, params) => {

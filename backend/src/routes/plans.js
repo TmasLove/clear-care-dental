@@ -229,11 +229,23 @@ router.delete('/:id', requireRole('employer', 'admin'), async (req, res, next) =
 // ---------------------------------------------------------------------------
 // GET /:id/members – members enrolled in plan
 // ---------------------------------------------------------------------------
-router.get('/:id/members', async (req, res, next) => {
+router.get('/:id/members', requireRole('employer', 'admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { page = 1, limit = 20 } = req.query;
-    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const { page = 1 } = req.query;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const offset = (parseInt(page, 10) - 1) * limit;
+
+    if (req.user.role === 'employer') {
+      const empResult = await query('SELECT id FROM employers WHERE user_id = $1', [req.user.id]);
+      if (empResult.rows.length === 0) {
+        return res.status(403).json({ success: false, error: 'Access denied' });
+      }
+      const planCheck = await query('SELECT id FROM plans WHERE id = $1 AND employer_id = $2', [id, empResult.rows[0].id]);
+      if (planCheck.rows.length === 0) {
+        return res.status(403).json({ success: false, error: 'Access denied' });
+      }
+    }
 
     const result = await query(
       `SELECT m.*, u.email, u.first_name, u.last_name, u.phone
@@ -242,7 +254,7 @@ router.get('/:id/members', async (req, res, next) => {
        WHERE m.plan_id = $1
        ORDER BY u.last_name, u.first_name
        LIMIT $2 OFFSET $3`,
-      [id, parseInt(limit, 10), offset]
+      [id, limit, offset]
     );
 
     const countResult = await query('SELECT COUNT(*) FROM members WHERE plan_id = $1', [id]);

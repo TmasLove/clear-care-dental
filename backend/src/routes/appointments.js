@@ -15,8 +15,9 @@ router.use(authenticateToken);
 // ---------------------------------------------------------------------------
 router.get('/', async (req, res, next) => {
   try {
-    const { member_id, dentist_id, status, from, to, page = 1, limit = 20 } = req.query;
-    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const { member_id, dentist_id, status, from, to, page = 1 } = req.query;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const offset = (parseInt(page, 10) - 1) * limit;
 
     const conditions = [];
     const params = [];
@@ -76,7 +77,7 @@ router.get('/', async (req, res, next) => {
        ${whereClause}
        ORDER BY a.appointment_date ASC
        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, parseInt(limit, 10), offset]
+      [...params, limit, offset]
     );
 
     const countResult = await query(
@@ -89,7 +90,7 @@ router.get('/', async (req, res, next) => {
       appointments: result.rows,
       total: parseInt(countResult.rows[0].count, 10),
       page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
+      limit: limit,
     });
   } catch (err) {
     return next(err);
@@ -201,11 +202,13 @@ router.put('/:id', async (req, res, next) => {
     const appt = apptCheck.rows[0];
 
     if (req.user.role === 'member') {
-      if (appt.member_id !== req.user.profileId) {
+      const mCheck = await query('SELECT id FROM members WHERE id = $1 AND user_id = $2', [appt.member_id, req.user.id]);
+      if (mCheck.rows.length === 0) {
         return res.status(403).json({ success: false, error: 'Access denied' });
       }
     } else if (req.user.role === 'dentist') {
-      if (appt.dentist_id !== req.user.profileId) {
+      const dCheck = await query('SELECT id FROM dentists WHERE id = $1 AND user_id = $2', [appt.dentist_id, req.user.id]);
+      if (dCheck.rows.length === 0) {
         return res.status(403).json({ success: false, error: 'Access denied' });
       }
     }
@@ -247,11 +250,13 @@ router.delete('/:id', async (req, res, next) => {
     const appt = apptCheck.rows[0];
 
     if (req.user.role === 'member') {
-      if (appt.member_id !== req.user.profileId) {
+      const mCheck = await query('SELECT id FROM members WHERE id = $1 AND user_id = $2', [appt.member_id, req.user.id]);
+      if (mCheck.rows.length === 0) {
         return res.status(403).json({ success: false, error: 'Access denied' });
       }
     } else if (req.user.role === 'dentist') {
-      if (appt.dentist_id !== req.user.profileId) {
+      const dCheck = await query('SELECT id FROM dentists WHERE id = $1 AND user_id = $2', [appt.dentist_id, req.user.id]);
+      if (dCheck.rows.length === 0) {
         return res.status(403).json({ success: false, error: 'Access denied' });
       }
     }

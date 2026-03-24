@@ -85,8 +85,9 @@ router.get('/lookup/:memberIdString', async (req, res, next) => {
 // ---------------------------------------------------------------------------
 router.get('/', requireRole('admin', 'employer'), async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, employer_id, plan_id, q } = req.query;
-    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const { page = 1, employer_id, plan_id, q } = req.query;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const offset = (parseInt(page, 10) - 1) * limit;
 
     const conditions = [];
     const params = [];
@@ -125,7 +126,7 @@ router.get('/', requireRole('admin', 'employer'), async (req, res, next) => {
        ${whereClause}
        ORDER BY u.last_name, u.first_name
        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, parseInt(limit, 10), offset]
+      [...params, limit, offset]
     );
 
     const countResult = await query(
@@ -138,7 +139,7 @@ router.get('/', requireRole('admin', 'employer'), async (req, res, next) => {
       members: result.rows,
       total: parseInt(countResult.rows[0].count, 10),
       page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
+      limit: limit,
     });
   } catch (err) {
     return next(err);
@@ -350,8 +351,9 @@ router.get('/:id/claims', async (req, res, next) => {
       return res.status(403).json({ success: false, error: 'Access denied' });
     }
 
-    const { page = 1, limit = 20, status, from, to } = req.query;
-    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const { page = 1, status, from, to } = req.query;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const offset = (parseInt(page, 10) - 1) * limit;
 
     const conditions = ['c.member_id = $1'];
     const params = [id];
@@ -380,7 +382,7 @@ router.get('/:id/claims', async (req, res, next) => {
        ${whereClause}
        ORDER BY c.service_date DESC
        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, parseInt(limit, 10), offset]
+      [...params, limit, offset]
     );
 
     const countResult = await query(
@@ -393,7 +395,7 @@ router.get('/:id/claims', async (req, res, next) => {
       claims: result.rows,
       total: parseInt(countResult.rows[0].count, 10),
       page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
+      limit: limit,
     });
   } catch (err) {
     return next(err);

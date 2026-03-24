@@ -2,6 +2,7 @@
 
 const jwt = require('jsonwebtoken');
 const { query } = require('../config/database');
+const { tokenBlacklist } = require('../routes/auth');
 
 /**
  * Verify JWT from Authorization Bearer header and attach user to req.
@@ -18,6 +19,10 @@ const authenticateToken = async (req, res, next) => {
         success: false,
         error: 'Access token required',
       });
+    }
+
+    if (tokenBlacklist.has(token)) {
+      return res.status(401).json({ success: false, error: 'Token has been revoked' });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

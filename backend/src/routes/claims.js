@@ -23,8 +23,9 @@ const generateClaimNumber = () => {
 // ---------------------------------------------------------------------------
 router.get('/', async (req, res, next) => {
   try {
-    const { member_id, dentist_id, status, from, to, page = 1, limit = 20 } = req.query;
-    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const { member_id, dentist_id, status, from, to, page = 1 } = req.query;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const offset = (parseInt(page, 10) - 1) * limit;
 
     const conditions = [];
     const params = [];
@@ -90,7 +91,7 @@ router.get('/', async (req, res, next) => {
        ${whereClause}
        ORDER BY c.submission_date DESC
        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, parseInt(limit, 10), offset]
+      [...params, limit, offset]
     );
 
     const countResult = await query(
@@ -105,7 +106,7 @@ router.get('/', async (req, res, next) => {
       claims: result.rows,
       total: parseInt(countResult.rows[0].count, 10),
       page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
+      limit: limit,
     });
   } catch (err) {
     return next(err);
@@ -371,6 +372,14 @@ router.get('/:id/estimate', async (req, res, next) => {
     const { member_id } = req.query;
     const targetMemberId = member_id || req.params.id;
 
+    // Access control: members may only estimate for themselves
+    if (req.user.role === 'member') {
+      const mCheck = await query('SELECT id FROM members WHERE id = $1 AND user_id = $2', [targetMemberId, req.user.id]);
+      if (mCheck.rows.length === 0) {
+        return res.status(403).json({ success: false, error: 'Access denied' });
+      }
+    }
+
     const { line_items: rawItems, service_date } = req.query;
 
     if (!rawItems) {
@@ -380,6 +389,9 @@ router.get('/:id/estimate', async (req, res, next) => {
     let lineItems;
     try {
       lineItems = JSON.parse(rawItems);
+      if (!Array.isArray(lineItems)) {
+        return res.status(400).json({ success: false, error: 'line_items must be a JSON array' });
+      }
     } catch {
       return res.status(400).json({ success: false, error: 'line_items must be valid JSON' });
     }

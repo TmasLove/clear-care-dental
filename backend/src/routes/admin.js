@@ -85,8 +85,9 @@ router.get('/stats', async (req, res, next) => {
 // ---------------------------------------------------------------------------
 router.get('/users', async (req, res, next) => {
   try {
-    const { role, is_active, q, page = 1, limit = 20 } = req.query;
-    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const { role, is_active, q, page = 1 } = req.query;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const offset = (parseInt(page, 10) - 1) * limit;
 
     const conditions = [];
     const params = [];
@@ -116,7 +117,7 @@ router.get('/users', async (req, res, next) => {
        ${whereClause}
        ORDER BY created_at DESC
        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, parseInt(limit, 10), offset]
+      [...params, limit, offset]
     );
 
     const countResult = await query(`SELECT COUNT(*) FROM users ${whereClause}`, params);
@@ -126,7 +127,7 @@ router.get('/users', async (req, res, next) => {
       users: result.rows,
       total: parseInt(countResult.rows[0].count, 10),
       page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
+      limit: limit,
     });
   } catch (err) {
     return next(err);
@@ -167,7 +168,7 @@ router.put('/users/:id/activate', async (req, res, next) => {
 // ---------------------------------------------------------------------------
 router.get('/claims/activity', async (req, res, next) => {
   try {
-    const { limit = 50 } = req.query;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
 
     const result = await query(
       `SELECT c.id, c.claim_number, c.status, c.total_billed, c.plan_paid,
@@ -184,7 +185,7 @@ router.get('/claims/activity', async (req, res, next) => {
        LEFT JOIN plans p ON p.id = c.plan_id
        ORDER BY c.updated_at DESC
        LIMIT $1`,
-      [parseInt(limit, 10)]
+      [limit]
     );
 
     return res.json({ success: true, activity: result.rows });

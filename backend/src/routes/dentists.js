@@ -27,7 +27,8 @@ const handleDentistSearch = async (req, res, next) => {
   try {
     // Normalise `query` → `q`
     const q = req.query.q || req.query.query;
-    const { city, state, specialty, in_network, lat, lng, radius = '25', page = 1, limit = 20, accepting_new_patients } = req.query;
+    const { city, state, specialty, in_network, lat, lng, radius = '25', page = 1, accepting_new_patients } = req.query;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
 
     const conditions = [];
     const params = [];
@@ -62,8 +63,8 @@ const handleDentistSearch = async (req, res, next) => {
     }
 
     const total = dentists.length;
-    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
-    return res.json({ success: true, dentists: dentists.slice(offset, offset + parseInt(limit, 10)), total, page: parseInt(page, 10), limit: parseInt(limit, 10) });
+    const offset = (parseInt(page, 10) - 1) * limit;
+    return res.json({ success: true, dentists: dentists.slice(offset, offset + limit), total, page: parseInt(page, 10), limit });
   } catch (err) { return next(err); }
 };
 
@@ -177,8 +178,9 @@ router.get('/me/payments', authenticateToken, requireRole('dentist'), async (req
     const dentist = await query('SELECT id FROM dentists WHERE user_id = $1', [req.user.id]);
     if (dentist.rows.length === 0) return res.json({ success: true, payments: [], totals: { total_paid: 0, total_pending: 0 } });
     const id = dentist.rows[0].id;
-    const { page = 1, limit = 20 } = req.query;
-    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const { page = 1 } = req.query;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const offset = (parseInt(page, 10) - 1) * limit;
     const result = await query(
       `SELECT pay.*, c.claim_number, c.service_date, c.total_billed,
               u.first_name AS member_first_name, u.last_name AS member_last_name
@@ -188,7 +190,7 @@ router.get('/me/payments', authenticateToken, requireRole('dentist'), async (req
        JOIN users u ON u.id = m.user_id
        WHERE pay.dentist_id = $1
        ORDER BY pay.created_at DESC LIMIT $2 OFFSET $3`,
-      [id, parseInt(limit, 10), offset]
+      [id, limit, offset]
     );
     const totals = await query(
       `SELECT COALESCE(SUM(CASE WHEN payment_status='completed' THEN amount END),0) AS total_paid,
@@ -309,8 +311,9 @@ router.put('/:id', authenticateToken, requireRole('dentist', 'admin'), async (re
 router.get('/:id/appointments', authenticateToken, async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { from, to, status, page = 1, limit = 20 } = req.query;
-    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const { from, to, status, page = 1 } = req.query;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const offset = (parseInt(page, 10) - 1) * limit;
 
     const conditions = ['a.dentist_id = $1'];
     const params = [id];
@@ -338,7 +341,7 @@ router.get('/:id/appointments', authenticateToken, async (req, res, next) => {
        WHERE ${conditions.join(' AND ')}
        ORDER BY a.appointment_date ASC
        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, parseInt(limit, 10), offset]
+      [...params, limit, offset]
     );
 
     return res.json({ success: true, appointments: result.rows });
@@ -396,8 +399,9 @@ router.get('/:id/payments', authenticateToken, requireRole('dentist', 'admin'), 
       }
     }
 
-    const { page = 1, limit = 20 } = req.query;
-    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const { page = 1 } = req.query;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const offset = (parseInt(page, 10) - 1) * limit;
 
     const result = await query(
       `SELECT pay.*, c.claim_number, c.service_date, c.total_billed
@@ -406,7 +410,7 @@ router.get('/:id/payments', authenticateToken, requireRole('dentist', 'admin'), 
        WHERE pay.dentist_id = $1
        ORDER BY pay.created_at DESC
        LIMIT $2 OFFSET $3`,
-      [id, parseInt(limit, 10), offset]
+      [id, limit, offset]
     );
 
     const totalsResult = await query(

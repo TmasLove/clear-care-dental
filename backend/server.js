@@ -22,6 +22,7 @@ const supportRoutes = require('./src/routes/support');
 const adminRoutes = require('./src/routes/admin');
 const paymentRoutes = require('./src/routes/payments');
 
+const jwt = require('jsonwebtoken');
 const { notFound, errorHandler } = require('./src/middleware/errorHandler');
 
 const app = express();
@@ -37,10 +38,23 @@ const io = new Server(server, {
   },
 });
 
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+  if (!token) return next(new Error('Authentication required'));
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.data.userId = decoded.userId;
+    next();
+  } catch {
+    next(new Error('Invalid token'));
+  }
+});
+
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
   socket.on('join_room', (userId) => {
+    if (socket.data.userId !== userId) return;
     socket.join(`user_${userId}`);
     console.log(`Socket ${socket.id} joined room user_${userId}`);
   });
@@ -56,7 +70,22 @@ app.set('io', io);
 // ---------------------------------------------------------------------------
 // Core middleware
 // ---------------------------------------------------------------------------
-app.use(helmet());
+app.use(helmet({
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'"],
+    },
+  },
+}));
 
 app.use(
   cors({
@@ -90,17 +119,22 @@ const limiter = rateLimit({
 
 app.use('/api/', limiter);
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many authentication attempts. Please try again later.' },
+});
+app.use('/api/v1/auth/login', authLimiter);
+app.use('/api/v1/auth/magic-link', authLimiter);
+app.use('/api/v1/auth/register', authLimiter);
+
 // ---------------------------------------------------------------------------
 // Health check
 // ---------------------------------------------------------------------------
 app.get('/health', (_req, res) => {
-  res.json({
-    success: true,
-    status: 'healthy',
-    service: 'Clear Care Dental API',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-  });
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // ---------------------------------------------------------------------------

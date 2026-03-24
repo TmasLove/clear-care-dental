@@ -17,8 +17,9 @@ router.use(authenticateToken);
 // ---------------------------------------------------------------------------
 router.get('/', requireRole('admin'), async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, q } = req.query;
-    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const { page = 1, q } = req.query;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const offset = (parseInt(page, 10) - 1) * limit;
 
     let whereClause = '';
     const params = [];
@@ -40,7 +41,7 @@ router.get('/', requireRole('admin'), async (req, res, next) => {
        GROUP BY e.id, u.email, u.first_name, u.last_name, u.phone, u.is_active
        ORDER BY e.created_at DESC
        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, parseInt(limit, 10), offset]
+      [...params, limit, offset]
     );
 
     const countResult = await query(
@@ -53,7 +54,7 @@ router.get('/', requireRole('admin'), async (req, res, next) => {
       employers: result.rows,
       total: parseInt(countResult.rows[0].count, 10),
       page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
+      limit: limit,
     });
   } catch (err) {
     return next(err);
@@ -232,8 +233,9 @@ router.get('/:id/dashboard', requireRole('employer', 'admin'), async (req, res, 
 router.get('/:id/members', requireRole('employer', 'admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { page = 1, limit = 20 } = req.query;
-    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const { page = 1 } = req.query;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const offset = (parseInt(page, 10) - 1) * limit;
 
     if (req.user.role === 'employer') {
       const check = await query('SELECT id FROM employers WHERE id = $1 AND user_id = $2', [id, req.user.id]);
@@ -251,7 +253,7 @@ router.get('/:id/members', requireRole('employer', 'admin'), async (req, res, ne
        WHERE m.employer_id = $1
        ORDER BY u.last_name, u.first_name
        LIMIT $2 OFFSET $3`,
-      [id, parseInt(limit, 10), offset]
+      [id, limit, offset]
     );
 
     const countResult = await query(
@@ -264,7 +266,7 @@ router.get('/:id/members', requireRole('employer', 'admin'), async (req, res, ne
       members: result.rows,
       total: parseInt(countResult.rows[0].count, 10),
       page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
+      limit: limit,
     });
   } catch (err) {
     return next(err);
@@ -340,13 +342,10 @@ router.post(
         [userId, id, plan_id || null, memberId]
       );
 
-      // Simulate sending invite email
-      const inviteUrl = `${process.env.APP_URL || 'http://localhost:3001'}/invite/accept?token=INVITE_TOKEN&employer=${id}`;
-
+      // Simulate sending invite email (invite URL is sent via email only, not returned in response)
       return res.status(201).json({
         success: true,
-        message: `Invitation sent to ${email} (demo mode)`,
-        invite_url: inviteUrl,
+        message: 'Invitation sent.',
         member_id: memberId,
       });
     } catch (err) {

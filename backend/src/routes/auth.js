@@ -11,6 +11,10 @@ const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
+// In-memory token blacklist for logout invalidation.
+// TODO: Replace with Redis in production for distributed environments.
+const tokenBlacklist = new Set();
+
 const SALT_ROUNDS = 10;
 
 const generateToken = (user) =>
@@ -32,7 +36,11 @@ router.post(
   '/register',
   [
     body('email').isEmail().normalizeEmail(),
-    body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+    body('password')
+      .isLength({ min: 10 }).withMessage('Password must be at least 10 characters')
+      .matches(/[A-Z]/).withMessage('Password must contain at least one uppercase letter')
+      .matches(/[0-9]/).withMessage('Password must contain at least one number')
+      .matches(/[^A-Za-z0-9]/).withMessage('Password must contain at least one special character'),
     body('role').isIn(['employer', 'member', 'dentist']).withMessage('Invalid role'),
     body('first_name').notEmpty().trim(),
     body('last_name').notEmpty().trim(),
@@ -174,11 +182,11 @@ router.post(
 );
 
 // ---------------------------------------------------------------------------
-// GET /magic-link/verify?token=xxx
+// POST /magic-link/verify
 // ---------------------------------------------------------------------------
-router.get('/magic-link/verify', async (req, res, next) => {
+router.post('/magic-link/verify', async (req, res, next) => {
   try {
-    const { token } = req.query;
+    const { token } = req.body;
 
     if (!token) {
       return res.status(400).json({ success: false, error: 'Token required' });
@@ -215,8 +223,13 @@ router.get('/magic-link/verify', async (req, res, next) => {
 // POST /logout
 // ---------------------------------------------------------------------------
 router.post('/logout', (req, res) => {
-  // JWT is stateless; client must discard the token.
-  // If refresh tokens / session table were used, we'd invalidate here.
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.startsWith('Bearer ')
+    ? authHeader.slice(7)
+    : null;
+  if (token) {
+    tokenBlacklist.add(token);
+  }
   return res.json({ success: true, message: 'Logged out successfully' });
 });
 
@@ -239,7 +252,7 @@ router.get('/me', authenticateToken, async (req, res, next) => {
     let profile = null;
 
     if (user.role === 'employer') {
-      const ep = await query('SELECT * FROM employers WHERE user_id = $1', [user.id]);
+      const ep = await query('SELECT id, company_name, company_size, industry, address_line1, city, state, zip_code, website FROM employers WHERE user_id = $1', [user.id]);
       profile = ep.rows[0] || null;
     } else if (user.role === 'member') {
       const mp = await query(
@@ -252,7 +265,7 @@ router.get('/me', authenticateToken, async (req, res, next) => {
       );
       profile = mp.rows[0] || null;
     } else if (user.role === 'dentist') {
-      const dp = await query('SELECT * FROM dentists WHERE user_id = $1', [user.id]);
+      const dp = await query('SELECT id, license_number, specialty, practice_name, practice_address, city, state, zip_code, phone, npi_number, is_verified FROM dentists WHERE user_id = $1', [user.id]);
       profile = dp.rows[0] || null;
     }
 
@@ -263,3 +276,4 @@ router.get('/me', authenticateToken, async (req, res, next) => {
 });
 
 module.exports = router;
+module.exports.tokenBlacklist = tokenBlacklist;
