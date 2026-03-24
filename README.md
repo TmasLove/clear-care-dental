@@ -1,6 +1,6 @@
 # Clear Care Dental
 
-A full-stack mobile dental benefits platform built with React Native + Expo. Supports four user roles — Member, Dentist, Employer, and Admin — modeled after the Bento dental benefits platform.
+A full-stack mobile dental benefits platform built with React Native + Expo. Supports four user roles — Member, Dentist, Employer, and Admin.
 
 ---
 
@@ -30,7 +30,7 @@ A full-stack mobile dental benefits platform built with React Native + Expo. Sup
 - Submit and track claims (PDF upload)
 - Manage appointments with checkout flow
 - Treatment plan estimates
-- Reports: Payments from Bento, Membership, Ortho Payments
+- Reports: Payments, Membership, Ortho Payments
 
 ### Employer
 - Manage employee benefit groups
@@ -59,7 +59,7 @@ A full-stack mobile dental benefits platform built with React Native + Expo. Sup
 │       │   └── admin/       # Admin portal screens
 │       ├── utils/
 │       │   ├── colors.js         # Shared color tokens
-│       │   └── dentistColors.js  # Bento-inspired dentist portal theme
+│       │   └── dentistColors.js  # Dentist portal color theme
 │       └── components/      # Shared UI components
 │
 ├── backend/                 # Node.js + Express API
@@ -124,7 +124,7 @@ The main website at `www.clearcaredentalgroup.com` is unaffected — the app liv
 
 ## Design System — Dentist Portal
 
-The dentist portal uses a Bento-inspired theme (`dentistColors.js`):
+The dentist portal uses a custom color theme (`dentistColors.js`):
 
 | Token | Value | Use |
 |-------|-------|-----|
