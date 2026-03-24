@@ -7,89 +7,12 @@ import {
   TouchableOpacity,
   TextInput,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../utils/colors';
 import { formatCurrency } from '../../utils/formatters';
-
-// ── Procedure data — with-plan range + without-plan price ──────────────────────
-// Modeled after real in-network pricing data by ZIP
-const PROCEDURES = [
-  {
-    id: 1, cdt: 'D0120', name: 'Oral Eval', category: 'Preventive',
-    withLow: 38,  withHigh: 60,   without: 135,
-    coverage: 100, deductibleApplies: false,
-    description: 'A routine periodic oral evaluation to check your overall dental health.',
-  },
-  {
-    id: 2, cdt: 'D0274', name: 'X-Rays', category: 'Preventive',
-    withLow: 42,  withHigh: 66,   without: 105,
-    coverage: 100, deductibleApplies: false,
-    description: 'Bitewing X-rays to detect cavities and check bone levels between teeth.',
-  },
-  {
-    id: 3, cdt: 'D1110', name: 'Cleaning', category: 'Preventive',
-    withLow: 62,  withHigh: 97,   without: 160,
-    coverage: 100, deductibleApplies: false,
-    description: 'Professional prophylaxis (cleaning) to remove plaque and tartar.',
-  },
-  {
-    id: 4, cdt: 'D2392', name: 'Fillings', category: 'Basic',
-    withLow: 140, withHigh: 231,  without: 390,
-    coverage: 80,  deductibleApplies: true,
-    description: 'Composite resin (tooth-colored) filling to restore a decayed tooth.',
-  },
-  {
-    id: 5, cdt: 'D2750', name: 'Crown', category: 'Major',
-    withLow: 662, withHigh: 1095, without: 1821,
-    coverage: 50,  deductibleApplies: true,
-    description: 'A porcelain crown to cap and protect a damaged or weakened tooth.',
-  },
-  {
-    id: 6, cdt: 'D3330', name: 'Root Canal', category: 'Major',
-    withLow: 682, withHigh: 1127, without: 2195,
-    coverage: 50,  deductibleApplies: true,
-    description: 'Endodontic treatment to remove infected pulp from a molar tooth.',
-  },
-  {
-    id: 7, cdt: 'D4341', name: 'Scaling', category: 'Periodontics',
-    withLow: 148, withHigh: 245,  without: 400,
-    coverage: 80,  deductibleApplies: true,
-    description: 'Scaling and root planing (deep cleaning) per quadrant for gum disease.',
-  },
-  {
-    id: 8, cdt: 'D7210', name: 'Extraction', category: 'Oral Surgery',
-    withLow: 179, withHigh: 296,  without: 550,
-    coverage: 80,  deductibleApplies: true,
-    description: 'Surgical removal of a tooth that cannot be saved.',
-  },
-  {
-    id: 9,  cdt: 'D1120', name: 'Child Cleaning', category: 'Preventive',
-    withLow: 45,  withHigh: 72,   without: 120,
-    coverage: 100, deductibleApplies: false,
-    description: 'Prophylaxis cleaning for patients under 14 years old.',
-  },
-  {
-    id: 10, cdt: 'D7240', name: 'Wisdom Tooth Removal', category: 'Oral Surgery',
-    withLow: 280, withHigh: 465,  without: 850,
-    coverage: 50,  deductibleApplies: true,
-    description: 'Surgical removal of a completely impacted wisdom tooth.',
-  },
-  {
-    id: 11, cdt: 'D8080', name: 'Braces (child)', category: 'Orthodontics',
-    withLow: 3200, withHigh: 4800, without: 5200,
-    coverage: 0, deductibleApplies: false,
-    description: 'Comprehensive orthodontic treatment for patients under 18.',
-  },
-  {
-    id: 12, cdt: 'D8090', name: 'Braces (adult)', category: 'Orthodontics',
-    withLow: 3800, withHigh: 5500, without: 6000,
-    coverage: 0, deductibleApplies: false,
-    description: 'Comprehensive orthodontic treatment for adult patients.',
-  },
-];
-
-const CATEGORIES = ['All', 'Preventive', 'Basic', 'Major', 'Periodontics', 'Oral Surgery', 'Orthodontics'];
+import { proceduresAPI } from '../../api/procedures';
 
 // ── Detail Modal ───────────────────────────────────────────────────────────────
 const DetailModal = ({ item, visible, onClose, zipCode }) => {
@@ -254,25 +177,48 @@ const modalStyles = StyleSheet.create({
   ctaText: { fontSize: 15, fontWeight: '700', color: colors.white },
 });
 
+const CATEGORIES = ['All', 'Preventive', 'Basic', 'Major', 'Periodontics', 'Oral Surgery', 'Orthodontics'];
+
 // ── Main Screen ────────────────────────────────────────────────────────────────
 const PriceCheckerScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const [zipCode, setZipCode] = useState('');
   const [searchedZip, setSearchedZip] = useState('');
+  const [searchedState, setSearchedState] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
+  const [procedures, setProcedures] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
 
   const filteredProcedures = useMemo(() => {
-    if (activeCategory === 'All') return PROCEDURES;
-    return PROCEDURES.filter((p) => p.category === activeCategory);
-  }, [activeCategory]);
+    if (activeCategory === 'All') return procedures;
+    return procedures.filter((p) => p.category === activeCategory);
+  }, [activeCategory, procedures]);
 
-  const handleSearch = () => {
-    if (zipCode.trim().length < 5) return;
-    setSearchedZip(zipCode.trim());
-    setHasSearched(true);
+  const handleSearch = async () => {
+    const zip = zipCode.trim();
+    if (zip.length < 5) return;
+    setLoading(true);
+    setError('');
+    try {
+      const data = await proceduresAPI.getPriceCheck(zip);
+      if (data.success && data.procedures?.length) {
+        setProcedures(data.procedures);
+        setSearchedZip(zip);
+        setSearchedState(data.state || '');
+        setHasSearched(true);
+        setActiveCategory('All');
+      } else {
+        setError('No pricing data found for this ZIP code. Please try another.');
+      }
+    } catch {
+      setError('Unable to load pricing. Please check your connection and try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRowPress = (item) => {
@@ -331,8 +277,23 @@ const PriceCheckerScreen = ({ navigation }) => {
           </View>
         </View>
 
+        {/* Loading / Error */}
+        {loading && (
+          <View style={styles.loadingState}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Loading prices for {zipCode}...</Text>
+          </View>
+        )}
+
+        {!loading && error ? (
+          <View style={styles.errorState}>
+            <Text style={styles.errorIcon}>⚠️</Text>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+
         {/* Results */}
-        {hasSearched ? (
+        {!loading && hasSearched && !error ? (
           <>
             {/* Category filter */}
             <ScrollView
@@ -394,11 +355,13 @@ const PriceCheckerScreen = ({ navigation }) => {
             </View>
 
             <Text style={styles.disclaimer}>
-              Costs are estimates for in-network providers near {searchedZip}. Tap any row for a full breakdown.
+              Costs are estimates for in-network providers near {searchedZip}{searchedState ? `, ${searchedState}` : ''}. Tap any row for a full breakdown.
             </Text>
           </>
-        ) : (
-          /* Empty state */
+        ) : null}
+
+        {/* Empty state — shown only before first search */}
+        {!loading && !hasSearched && !error ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>🦷</Text>
             <Text style={styles.emptyTitle}>Check Dental Costs</Text>
@@ -545,6 +508,27 @@ const styles = StyleSheet.create({
     fontSize: 12, color: colors.textSecondary,
     textAlign: 'center', marginHorizontal: 20,
     marginTop: 12, lineHeight: 17,
+  },
+
+  // Loading / error
+  loadingState: {
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 32,
+  },
+  loadingText: {
+    fontSize: 14, color: colors.textSecondary,
+    marginTop: 16, textAlign: 'center',
+  },
+  errorState: {
+    alignItems: 'center',
+    paddingTop: 48,
+    paddingHorizontal: 32,
+  },
+  errorIcon: { fontSize: 36, marginBottom: 12 },
+  errorText: {
+    fontSize: 14, color: colors.error || '#e53935',
+    textAlign: 'center', lineHeight: 20,
   },
 
   // Empty state

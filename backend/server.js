@@ -21,6 +21,7 @@ const notificationRoutes = require('./src/routes/notifications');
 const supportRoutes = require('./src/routes/support');
 const adminRoutes = require('./src/routes/admin');
 const paymentRoutes = require('./src/routes/payments');
+const procedureRoutes = require('./src/routes/procedures');
 
 const jwt = require('jsonwebtoken');
 const { notFound, errorHandler } = require('./src/middleware/errorHandler');
@@ -153,6 +154,7 @@ app.use(`${API_PREFIX}/notifications`, notificationRoutes);
 app.use(`${API_PREFIX}/support`, supportRoutes);
 app.use(`${API_PREFIX}/admin`, adminRoutes);
 app.use(`${API_PREFIX}/payments`, paymentRoutes);
+app.use(`${API_PREFIX}/procedures`, procedureRoutes);
 
 // ---------------------------------------------------------------------------
 // Error handling
