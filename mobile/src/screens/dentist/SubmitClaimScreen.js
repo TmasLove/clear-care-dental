@@ -149,6 +149,7 @@ const SubmitClaimScreen = ({ navigation, route }) => {
   const handleGetEstimate = async () => {
     if (!validate()) return;
     setEstimateLoading(true);
+    setSubmitError('');
     try {
       const data = await claimsAPI.getClaimEstimate({
         memberId: form.memberId.trim(),
@@ -156,9 +157,10 @@ const SubmitClaimScreen = ({ navigation, route }) => {
         amountBilled: Number(form.amountBilled),
         serviceDate: form.serviceDate,
       });
-      setEstimate(data?.estimate || data || MOCK_ESTIMATE);
+      setEstimate(data?.estimate || data);
     } catch {
-      setEstimate(MOCK_ESTIMATE);
+      setEstimate(null);
+      setSubmitError('Unable to get estimate. Please check your connection and try again.');
     } finally {
       setEstimateLoading(false);
     }

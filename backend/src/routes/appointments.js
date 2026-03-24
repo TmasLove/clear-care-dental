@@ -193,6 +193,23 @@ router.put('/:id', async (req, res, next) => {
       return res.status(400).json({ success: false, error: `Invalid status` });
     }
 
+    // Fetch appointment to check ownership
+    const apptCheck = await query('SELECT member_id, dentist_id FROM appointments WHERE id = $1', [id]);
+    if (apptCheck.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Appointment not found' });
+    }
+    const appt = apptCheck.rows[0];
+
+    if (req.user.role === 'member') {
+      if (appt.member_id !== req.user.profileId) {
+        return res.status(403).json({ success: false, error: 'Access denied' });
+      }
+    } else if (req.user.role === 'dentist') {
+      if (appt.dentist_id !== req.user.profileId) {
+        return res.status(403).json({ success: false, error: 'Access denied' });
+      }
+    }
+
     const result = await query(
       `UPDATE appointments SET
          appointment_date = COALESCE($1, appointment_date),
@@ -221,6 +238,23 @@ router.put('/:id', async (req, res, next) => {
 router.delete('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    // Fetch appointment to check ownership
+    const apptCheck = await query('SELECT member_id, dentist_id FROM appointments WHERE id = $1', [id]);
+    if (apptCheck.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Appointment not found' });
+    }
+    const appt = apptCheck.rows[0];
+
+    if (req.user.role === 'member') {
+      if (appt.member_id !== req.user.profileId) {
+        return res.status(403).json({ success: false, error: 'Access denied' });
+      }
+    } else if (req.user.role === 'dentist') {
+      if (appt.dentist_id !== req.user.profileId) {
+        return res.status(403).json({ success: false, error: 'Access denied' });
+      }
+    }
 
     const result = await query(
       `UPDATE appointments SET status = 'cancelled' WHERE id = $1 RETURNING id, status`,

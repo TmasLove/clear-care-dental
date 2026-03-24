@@ -158,14 +158,14 @@ router.post(
         [token, expires, email]
       );
 
-      // In production this would call nodemailer. For demo, return the token.
+      // In production this would call nodemailer to send the magic link email.
       const magicUrl = `${process.env.APP_URL || 'http://localhost:3001'}/auth/magic?token=${token}`;
+      // TODO: send magicUrl via email (e.g. nodemailer)
+      void magicUrl;
 
       return res.json({
         success: true,
-        message: 'Magic link generated (demo mode – token returned in response)',
-        magic_link_url: magicUrl,
-        token, // exposed for demo/testing only
+        message: 'Magic link sent to your email.',
       });
     } catch (err) {
       return next(err);

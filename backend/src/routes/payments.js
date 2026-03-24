@@ -158,10 +158,10 @@ router.post('/:claimId/process', requireRole('admin'), async (req, res, next) =>
 
     const completedPayment = { ...payment, payment_status: 'completed', payment_date: new Date() };
 
-    // Emit socket.io payment event
+    // Emit socket.io payment event only to the relevant dentist room
     const io = req.app.get('io');
-    if (io) {
-      io.emit('payment_received', {
+    if (io && claim.dentist_user_id) {
+      io.to(`user_${claim.dentist_user_id}`).emit('payment_received', {
         payment_id: payment.id,
         claim_id: claimId,
         claim_number: claim.claim_number,

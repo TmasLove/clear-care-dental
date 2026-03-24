@@ -297,15 +297,21 @@ router.post(
         );
       }
 
-      // Emit socket event
+      // Emit socket event only to the relevant member and dentist rooms
       if (io) {
-        io.emit('claim_adjudicated', {
+        const payload = {
           claim_id: claim.id,
           claim_number: claimNumber,
           status: adjResult.status,
           plan_paid: adjResult.plan_paid,
           member_responsibility: adjResult.member_responsibility,
-        });
+        };
+        if (mUser.rows.length > 0) {
+          io.to(`user_${mUser.rows[0].user_id}`).emit('claim_adjudicated', payload);
+        }
+        if (dUser.rows.length > 0) {
+          io.to(`user_${dUser.rows[0].user_id}`).emit('claim_adjudicated', payload);
+        }
       }
 
       return res.status(201).json({

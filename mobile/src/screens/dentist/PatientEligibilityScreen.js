@@ -34,33 +34,13 @@ const PatientEligibilityScreen = ({ navigation, route }) => {
     setLoading(true);
     try {
       const data = await dentistsAPI.verifyPatientEligibility(memberId.trim());
-      setEligibility(data?.eligibility || data || MOCK_ELIGIBILITY);
+      setEligibility(data?.eligibility || data);
     } catch {
-      // Use mock data for demo
-      setEligibility(MOCK_ELIGIBILITY);
+      setEligibility(null);
+      setError('Unable to verify eligibility. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const MOCK_ELIGIBILITY = {
-    isEligible: true,
-    memberName: prefillName || 'Sarah Johnson',
-    memberId: memberId || 'CC-1001',
-    planName: 'Standard Dental Plan',
-    groupNumber: 'GRP-4892',
-    effectiveDate: '2025-01-01',
-    renewalDate: '2025-12-31',
-    coveragePreventive: 100,
-    coverageBasic: 80,
-    coverageMajor: 50,
-    annualMax: 1500,
-    deductible: 50,
-    deductibleMet: 50,
-    annualUsed: 340,
-    remainingBenefit: 1160,
-    inNetwork: true,
-    networkName: 'Clear Care PPO Network',
   };
 
   return (

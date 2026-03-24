@@ -58,6 +58,9 @@ router.get('/me', async (req, res, next) => {
 // ---------------------------------------------------------------------------
 router.get('/lookup/:memberIdString', async (req, res, next) => {
   try {
+    if (req.user.role === 'member') {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
     const result = await query(
       `SELECT m.*, u.first_name, u.last_name, u.email,
               p.name AS plan_name, p.annual_maximum, p.coverage_preventive,
@@ -188,7 +191,12 @@ router.put('/:id', async (req, res, next) => {
       return res.status(403).json({ success: false, error: 'Access denied' });
     }
 
-    const { date_of_birth, gender, relationship, plan_id } = req.body;
+    const { date_of_birth, gender, relationship, plan_id: requestedPlanId } = req.body;
+
+    // Only admin and employer roles may change plan_id
+    const plan_id = (requestedPlanId !== undefined && req.user.role === 'member')
+      ? undefined
+      : requestedPlanId;
 
     const result = await query(
       `UPDATE members SET

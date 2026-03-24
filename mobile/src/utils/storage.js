@@ -1,15 +1,15 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 const KEYS = {
-  TOKEN: '@clear_care:token',
-  USER: '@clear_care:user',
-  REFRESH_TOKEN: '@clear_care:refresh_token',
+  TOKEN: 'clear_care_token',
+  USER: 'clear_care_user',
+  REFRESH_TOKEN: 'clear_care_refresh_token',
 };
 
 export const storage = {
   async getToken() {
     try {
-      return await AsyncStorage.getItem(KEYS.TOKEN);
+      return await SecureStore.getItemAsync(KEYS.TOKEN);
     } catch {
       return null;
     }
@@ -17,7 +17,7 @@ export const storage = {
 
   async setToken(token) {
     try {
-      await AsyncStorage.setItem(KEYS.TOKEN, token);
+      await SecureStore.setItemAsync(KEYS.TOKEN, token);
     } catch (e) {
       console.error('Failed to save token', e);
     }
@@ -25,7 +25,7 @@ export const storage = {
 
   async removeToken() {
     try {
-      await AsyncStorage.removeItem(KEYS.TOKEN);
+      await SecureStore.deleteItemAsync(KEYS.TOKEN);
     } catch (e) {
       console.error('Failed to remove token', e);
     }
@@ -33,7 +33,7 @@ export const storage = {
 
   async getUser() {
     try {
-      const json = await AsyncStorage.getItem(KEYS.USER);
+      const json = await SecureStore.getItemAsync(KEYS.USER);
       return json ? JSON.parse(json) : null;
     } catch {
       return null;
@@ -42,7 +42,7 @@ export const storage = {
 
   async setUser(user) {
     try {
-      await AsyncStorage.setItem(KEYS.USER, JSON.stringify(user));
+      await SecureStore.setItemAsync(KEYS.USER, JSON.stringify(user));
     } catch (e) {
       console.error('Failed to save user', e);
     }
@@ -50,7 +50,7 @@ export const storage = {
 
   async removeUser() {
     try {
-      await AsyncStorage.removeItem(KEYS.USER);
+      await SecureStore.deleteItemAsync(KEYS.USER);
     } catch (e) {
       console.error('Failed to remove user', e);
     }
@@ -58,7 +58,7 @@ export const storage = {
 
   async getRefreshToken() {
     try {
-      return await AsyncStorage.getItem(KEYS.REFRESH_TOKEN);
+      return await SecureStore.getItemAsync(KEYS.REFRESH_TOKEN);
     } catch {
       return null;
     }
@@ -66,7 +66,7 @@ export const storage = {
 
   async setRefreshToken(token) {
     try {
-      await AsyncStorage.setItem(KEYS.REFRESH_TOKEN, token);
+      await SecureStore.setItemAsync(KEYS.REFRESH_TOKEN, token);
     } catch (e) {
       console.error('Failed to save refresh token', e);
     }
@@ -74,7 +74,11 @@ export const storage = {
 
   async clearAll() {
     try {
-      await AsyncStorage.multiRemove([KEYS.TOKEN, KEYS.USER, KEYS.REFRESH_TOKEN]);
+      await Promise.all([
+        SecureStore.deleteItemAsync(KEYS.TOKEN),
+        SecureStore.deleteItemAsync(KEYS.USER),
+        SecureStore.deleteItemAsync(KEYS.REFRESH_TOKEN),
+      ]);
     } catch (e) {
       console.error('Failed to clear storage', e);
     }
@@ -83,7 +87,7 @@ export const storage = {
   async setItem(key, value) {
     try {
       const serialized = typeof value === 'string' ? value : JSON.stringify(value);
-      await AsyncStorage.setItem(key, serialized);
+      await SecureStore.setItemAsync(key, serialized);
     } catch (e) {
       console.error(`Failed to set ${key}`, e);
     }
@@ -91,7 +95,7 @@ export const storage = {
 
   async getItem(key) {
     try {
-      return await AsyncStorage.getItem(key);
+      return await SecureStore.getItemAsync(key);
     } catch {
       return null;
     }
@@ -99,7 +103,7 @@ export const storage = {
 
   async removeItem(key) {
     try {
-      await AsyncStorage.removeItem(key);
+      await SecureStore.deleteItemAsync(key);
     } catch (e) {
       console.error(`Failed to remove ${key}`, e);
     }

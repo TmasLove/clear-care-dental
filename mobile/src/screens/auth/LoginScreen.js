@@ -140,24 +140,26 @@ const LoginScreen = ({ navigation }) => {
         </View>
 
         {/* Demo Credentials */}
-        <View style={styles.demoBox}>
-          <Text style={styles.demoTitle}>🧪 Demo Credentials</Text>
-          {[
-            { role: 'Member', email: 'alice.johnson@email.com', pw: 'Member123!' },
-            { role: 'Dentist', email: 'dr.patel@smileplus.com', pw: 'Dentist123!' },
-            { role: 'Employer', email: 'hr@techcorp.com', pw: 'Employer123!' },
-            { role: 'Admin', email: 'admin@clearcaredental.com', pw: 'Admin123!' },
-          ].map((d) => (
-            <TouchableOpacity
-              key={d.role}
-              style={styles.demoRow}
-              onPress={() => { setEmail(d.email); setPassword(d.pw); setLoginError(''); setErrors({}); }}
-            >
-              <Text style={styles.demoRole}>{d.role}</Text>
-              <Text style={styles.demoEmail}>{d.email}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {__DEV__ && (
+          <View style={styles.demoBox}>
+            <Text style={styles.demoTitle}>🧪 Demo Credentials</Text>
+            {[
+              { role: 'Member', email: 'alice.johnson@email.com', pw: 'Member123!' },
+              { role: 'Dentist', email: 'dr.patel@smileplus.com', pw: 'Dentist123!' },
+              { role: 'Employer', email: 'hr@techcorp.com', pw: 'Employer123!' },
+              { role: 'Admin', email: 'admin@clearcaredental.com', pw: 'Admin123!' },
+            ].map((d) => (
+              <TouchableOpacity
+                key={d.role}
+                style={styles.demoRow}
+                onPress={() => { setEmail(d.email); setPassword(d.pw); setLoginError(''); setErrors({}); }}
+              >
+                <Text style={styles.demoRole}>{d.role}</Text>
+                <Text style={styles.demoEmail}>{d.email}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
