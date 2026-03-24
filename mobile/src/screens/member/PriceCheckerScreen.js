@@ -7,267 +7,108 @@ import {
   TouchableOpacity,
   TextInput,
   Modal,
-  FlatList,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../utils/colors';
 import { formatCurrency } from '../../utils/formatters';
 
-// ── Procedure data ─────────────────────────────────────────────────────────────
+// ── Procedure data — with-plan range + without-plan price ──────────────────────
+// Modeled after real in-network pricing data by ZIP
 const PROCEDURES = [
-  // Preventive
-  { id: 1, cdt: 'D0120', name: 'Periodic Oral Exam', category: 'Preventive', typical: 65,  coverage: 100, deductibleApplies: false },
-  { id: 2, cdt: 'D0150', name: 'Comprehensive Oral Exam', category: 'Preventive', typical: 120, coverage: 100, deductibleApplies: false },
-  { id: 3, cdt: 'D0210', name: 'Full Mouth X-Rays', category: 'Preventive', typical: 185, coverage: 100, deductibleApplies: false },
-  { id: 4, cdt: 'D0330', name: 'Panoramic X-Ray', category: 'Preventive', typical: 165, coverage: 100, deductibleApplies: false },
-  { id: 5, cdt: 'D1110', name: 'Adult Teeth Cleaning', category: 'Preventive', typical: 135, coverage: 100, deductibleApplies: false },
-  { id: 6, cdt: 'D1120', name: 'Child Teeth Cleaning', category: 'Preventive', typical: 95,  coverage: 100, deductibleApplies: false },
-  { id: 7, cdt: 'D1206', name: 'Topical Fluoride (child)', category: 'Preventive', typical: 45,  coverage: 100, deductibleApplies: false },
-
-  // Basic Restorative
-  { id: 8,  cdt: 'D2140', name: 'Amalgam Filling (1 surface)', category: 'Basic', typical: 195, coverage: 80, deductibleApplies: true },
-  { id: 9,  cdt: 'D2150', name: 'Amalgam Filling (2 surfaces)', category: 'Basic', typical: 255, coverage: 80, deductibleApplies: true },
-  { id: 10, cdt: 'D2330', name: 'Composite Filling (anterior, 1 surface)', category: 'Basic', typical: 215, coverage: 80, deductibleApplies: true },
-  { id: 11, cdt: 'D2391', name: 'Composite Filling (posterior, 1 surface)', category: 'Basic', typical: 235, coverage: 80, deductibleApplies: true },
-  { id: 12, cdt: 'D7140', name: 'Simple Tooth Extraction', category: 'Basic', typical: 185, coverage: 80, deductibleApplies: true },
-
-  // Major Restorative
-  { id: 13, cdt: 'D2710', name: 'Crown (resin-based)', category: 'Major', typical: 1050, coverage: 50, deductibleApplies: true },
-  { id: 14, cdt: 'D2740', name: 'Crown (porcelain/ceramic)', category: 'Major', typical: 1350, coverage: 50, deductibleApplies: true },
-  { id: 15, cdt: 'D3310', name: 'Root Canal (anterior)', category: 'Major', typical: 850,  coverage: 50, deductibleApplies: true },
-  { id: 16, cdt: 'D3320', name: 'Root Canal (premolar)', category: 'Major', typical: 1000, coverage: 50, deductibleApplies: true },
-  { id: 17, cdt: 'D3330', name: 'Root Canal (molar)', category: 'Major', typical: 1200, coverage: 50, deductibleApplies: true },
-  { id: 18, cdt: 'D5110', name: 'Complete Upper Denture', category: 'Major', typical: 1800, coverage: 50, deductibleApplies: true },
-  { id: 19, cdt: 'D6010', name: 'Dental Implant (surgical)', category: 'Major', typical: 2400, coverage: 50, deductibleApplies: true },
-
-  // Oral Surgery
-  { id: 20, cdt: 'D7210', name: 'Surgical Tooth Extraction', category: 'Oral Surgery', typical: 355,  coverage: 80, deductibleApplies: true },
-  { id: 21, cdt: 'D7240', name: 'Impacted Wisdom Tooth Removal', category: 'Oral Surgery', typical: 595,  coverage: 50, deductibleApplies: true },
-  { id: 22, cdt: 'D7310', name: 'Alveoloplasty (per quadrant)', category: 'Oral Surgery', typical: 275,  coverage: 50, deductibleApplies: true },
-
-  // Periodontics
-  { id: 23, cdt: 'D4341', name: 'Scaling & Root Planing (per quadrant)', category: 'Periodontics', typical: 285, coverage: 80, deductibleApplies: true },
-  { id: 24, cdt: 'D4355', name: 'Full Mouth Debridement', category: 'Periodontics', typical: 165, coverage: 80, deductibleApplies: true },
-  { id: 25, cdt: 'D4910', name: 'Periodontal Maintenance', category: 'Periodontics', typical: 175, coverage: 80, deductibleApplies: true },
-
-  // Orthodontics
-  { id: 26, cdt: 'D8080', name: 'Braces (child, comprehensive)', category: 'Orthodontics', typical: 5200, coverage: 0, deductibleApplies: false },
-  { id: 27, cdt: 'D8090', name: 'Braces (adult, comprehensive)', category: 'Orthodontics', typical: 6000, coverage: 0, deductibleApplies: false },
-  { id: 28, cdt: 'D8660', name: 'Orthodontic Exam', category: 'Orthodontics', typical: 150,  coverage: 0, deductibleApplies: false },
+  {
+    id: 1, cdt: 'D0120', name: 'Oral Eval', category: 'Preventive',
+    withLow: 38,  withHigh: 60,   without: 135,
+    coverage: 100, deductibleApplies: false,
+    description: 'A routine periodic oral evaluation to check your overall dental health.',
+  },
+  {
+    id: 2, cdt: 'D0274', name: 'X-Rays', category: 'Preventive',
+    withLow: 42,  withHigh: 66,   without: 105,
+    coverage: 100, deductibleApplies: false,
+    description: 'Bitewing X-rays to detect cavities and check bone levels between teeth.',
+  },
+  {
+    id: 3, cdt: 'D1110', name: 'Cleaning', category: 'Preventive',
+    withLow: 62,  withHigh: 97,   without: 160,
+    coverage: 100, deductibleApplies: false,
+    description: 'Professional prophylaxis (cleaning) to remove plaque and tartar.',
+  },
+  {
+    id: 4, cdt: 'D2392', name: 'Fillings', category: 'Basic',
+    withLow: 140, withHigh: 231,  without: 390,
+    coverage: 80,  deductibleApplies: true,
+    description: 'Composite resin (tooth-colored) filling to restore a decayed tooth.',
+  },
+  {
+    id: 5, cdt: 'D2750', name: 'Crown', category: 'Major',
+    withLow: 662, withHigh: 1095, without: 1821,
+    coverage: 50,  deductibleApplies: true,
+    description: 'A porcelain crown to cap and protect a damaged or weakened tooth.',
+  },
+  {
+    id: 6, cdt: 'D3330', name: 'Root Canal', category: 'Major',
+    withLow: 682, withHigh: 1127, without: 2195,
+    coverage: 50,  deductibleApplies: true,
+    description: 'Endodontic treatment to remove infected pulp from a molar tooth.',
+  },
+  {
+    id: 7, cdt: 'D4341', name: 'Scaling', category: 'Periodontics',
+    withLow: 148, withHigh: 245,  without: 400,
+    coverage: 80,  deductibleApplies: true,
+    description: 'Scaling and root planing (deep cleaning) per quadrant for gum disease.',
+  },
+  {
+    id: 8, cdt: 'D7210', name: 'Extraction', category: 'Oral Surgery',
+    withLow: 179, withHigh: 296,  without: 550,
+    coverage: 80,  deductibleApplies: true,
+    description: 'Surgical removal of a tooth that cannot be saved.',
+  },
+  {
+    id: 9,  cdt: 'D1120', name: 'Child Cleaning', category: 'Preventive',
+    withLow: 45,  withHigh: 72,   without: 120,
+    coverage: 100, deductibleApplies: false,
+    description: 'Prophylaxis cleaning for patients under 14 years old.',
+  },
+  {
+    id: 10, cdt: 'D7240', name: 'Wisdom Tooth Removal', category: 'Oral Surgery',
+    withLow: 280, withHigh: 465,  without: 850,
+    coverage: 50,  deductibleApplies: true,
+    description: 'Surgical removal of a completely impacted wisdom tooth.',
+  },
+  {
+    id: 11, cdt: 'D8080', name: 'Braces (child)', category: 'Orthodontics',
+    withLow: 3200, withHigh: 4800, without: 5200,
+    coverage: 0, deductibleApplies: false,
+    description: 'Comprehensive orthodontic treatment for patients under 18.',
+  },
+  {
+    id: 12, cdt: 'D8090', name: 'Braces (adult)', category: 'Orthodontics',
+    withLow: 3800, withHigh: 5500, without: 6000,
+    coverage: 0, deductibleApplies: false,
+    description: 'Comprehensive orthodontic treatment for adult patients.',
+  },
 ];
 
-const CATEGORIES = ['All', 'Preventive', 'Basic', 'Major', 'Oral Surgery', 'Periodontics', 'Orthodontics'];
-
-const DEDUCTIBLE = 50;
-
-// Calculate what member pays given coverage %, typical cost, and deductible
-function calcMemberPays(proc) {
-  if (proc.coverage === 0) return proc.typical;
-  const planPays = proc.typical * (proc.coverage / 100);
-  let memberPays = proc.typical - planPays;
-  if (proc.deductibleApplies) memberPays = Math.max(0, memberPays); // deductible already factored in plan cost
-  return Math.round(memberPays);
-}
-
-function calcSavings(proc) {
-  return proc.typical - calcMemberPays(proc);
-}
-
-// ── Sub-components ─────────────────────────────────────────────────────────────
-const CategoryChip = ({ label, active, onPress }) => (
-  <TouchableOpacity
-    style={[chipStyles.chip, active && chipStyles.chipActive]}
-    onPress={onPress}
-    activeOpacity={0.75}
-  >
-    <Text style={[chipStyles.label, active && chipStyles.labelActive]}>{label}</Text>
-  </TouchableOpacity>
-);
-
-const chipStyles = StyleSheet.create({
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: colors.white,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    marginRight: 8,
-  },
-  chipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  labelActive: {
-    color: colors.white,
-  },
-});
-
-const ProcedureCard = ({ item, onPress }) => {
-  const memberPays = calcMemberPays(item);
-  const savings = calcSavings(item);
-  const savingsPct = Math.round((savings / item.typical) * 100);
-
-  return (
-    <TouchableOpacity style={cardStyles.card} onPress={() => onPress(item)} activeOpacity={0.85}>
-      <View style={cardStyles.row}>
-        <View style={cardStyles.left}>
-          <View style={cardStyles.cdtBadge}>
-            <Text style={cardStyles.cdtText}>{item.cdt}</Text>
-          </View>
-          <View style={cardStyles.nameBlock}>
-            <Text style={cardStyles.name} numberOfLines={2}>{item.name}</Text>
-            <Text style={cardStyles.category}>{item.category}</Text>
-          </View>
-        </View>
-        <View style={cardStyles.right}>
-          <Text style={cardStyles.memberPays}>{formatCurrency(memberPays)}</Text>
-          <Text style={cardStyles.memberPaysLabel}>you pay</Text>
-          {savingsPct > 0 && (
-            <View style={cardStyles.savingsBadge}>
-              <Text style={cardStyles.savingsText}>Save {savingsPct}%</Text>
-            </View>
-          )}
-        </View>
-      </View>
-      <View style={cardStyles.footer}>
-        <Text style={cardStyles.typicalText}>
-          Typical area cost: <Text style={cardStyles.typicalAmount}>{formatCurrency(item.typical)}</Text>
-        </Text>
-        <Text style={cardStyles.detailLink}>Details ›</Text>
-      </View>
-    </TouchableOpacity>
-  );
-};
-
-const cardStyles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-  },
-  left: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  cdtBadge: {
-    backgroundColor: '#EBF2FA',
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-    marginRight: 10,
-    marginTop: 2,
-  },
-  cdtText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.primary,
-    letterSpacing: 0.3,
-  },
-  nameBlock: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 3,
-    lineHeight: 19,
-  },
-  category: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  right: {
-    alignItems: 'flex-end',
-    marginLeft: 8,
-  },
-  memberPays: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.primary,
-  },
-  memberPaysLabel: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    marginTop: 1,
-  },
-  savingsBadge: {
-    backgroundColor: '#E8F5EE',
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    marginTop: 5,
-  },
-  savingsText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.success,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  typicalText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  typicalAmount: {
-    fontWeight: '700',
-    color: colors.text,
-  },
-  detailLink: {
-    fontSize: 12,
-    color: colors.primary,
-    fontWeight: '700',
-  },
-});
+const CATEGORIES = ['All', 'Preventive', 'Basic', 'Major', 'Periodontics', 'Oral Surgery', 'Orthodontics'];
 
 // ── Detail Modal ───────────────────────────────────────────────────────────────
 const DetailModal = ({ item, visible, onClose, zipCode }) => {
   if (!item) return null;
-  const memberPays = calcMemberPays(item);
-  const planPays = item.typical - memberPays;
-  const savings = calcSavings(item);
+  const savings = item.without - item.withLow;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={modalStyles.overlay}>
         <View style={modalStyles.sheet}>
-          {/* Handle */}
           <View style={modalStyles.handle} />
 
-          {/* Header */}
           <View style={modalStyles.header}>
-            <View style={modalStyles.cdtBig}>
-              <Text style={modalStyles.cdtBigText}>{item.cdt}</Text>
+            <View style={modalStyles.cdtBadge}>
+              <Text style={modalStyles.cdtText}>{item.cdt}</Text>
             </View>
             <View style={modalStyles.headerText}>
-              <Text style={modalStyles.modalName}>{item.name}</Text>
-              <Text style={modalStyles.modalCategory}>{item.category}</Text>
+              <Text style={modalStyles.name}>{item.name}</Text>
+              <Text style={modalStyles.category}>{item.category}</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={modalStyles.closeBtn}>
               <Text style={modalStyles.closeX}>✕</Text>
@@ -275,7 +116,6 @@ const DetailModal = ({ item, visible, onClose, zipCode }) => {
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Location */}
             {zipCode ? (
               <View style={modalStyles.locationRow}>
                 <Text style={modalStyles.locationIcon}>📍</Text>
@@ -283,44 +123,38 @@ const DetailModal = ({ item, visible, onClose, zipCode }) => {
               </View>
             ) : null}
 
-            {/* Cost breakdown */}
-            <View style={modalStyles.breakdownCard}>
-              <Text style={modalStyles.breakdownTitle}>Cost Breakdown</Text>
+            <Text style={modalStyles.description}>{item.description}</Text>
 
-              <View style={modalStyles.breakdownRow}>
-                <Text style={modalStyles.breakdownLabel}>Typical area cost</Text>
-                <Text style={modalStyles.breakdownValue}>{formatCurrency(item.typical)}</Text>
-              </View>
-              <View style={modalStyles.breakdownRow}>
-                <Text style={modalStyles.breakdownLabel}>Plan pays ({item.coverage}%)</Text>
-                <Text style={[modalStyles.breakdownValue, { color: colors.success }]}>
-                  -{formatCurrency(planPays)}
+            {/* With plan */}
+            <View style={modalStyles.priceBlock}>
+              <View style={modalStyles.priceRow}>
+                <View>
+                  <Text style={modalStyles.priceLabel}>With your plan</Text>
+                  <Text style={modalStyles.priceNote}>In-network estimated range</Text>
+                </View>
+                <Text style={modalStyles.priceWith}>
+                  {formatCurrency(item.withLow)} – {formatCurrency(item.withHigh)}
                 </Text>
               </View>
-              {item.deductibleApplies && (
-                <View style={modalStyles.breakdownRow}>
-                  <Text style={modalStyles.breakdownLabel}>Deductible (if not met)</Text>
-                  <Text style={[modalStyles.breakdownValue, { color: colors.warning }]}>
-                    Up to {formatCurrency(DEDUCTIBLE)}
-                  </Text>
+              <View style={[modalStyles.priceRow, modalStyles.priceRowBorder]}>
+                <View>
+                  <Text style={[modalStyles.priceLabel, { color: colors.textSecondary }]}>Without plan</Text>
+                  <Text style={modalStyles.priceNote}>Typical out-of-network rate</Text>
                 </View>
-              )}
-              <View style={[modalStyles.breakdownRow, modalStyles.breakdownTotal]}>
-                <Text style={modalStyles.breakdownTotalLabel}>You pay (est.)</Text>
-                <Text style={modalStyles.breakdownTotalValue}>{formatCurrency(memberPays)}</Text>
+                <Text style={modalStyles.priceWithout}>{formatCurrency(item.without)}</Text>
               </View>
             </View>
 
-            {/* Savings highlight */}
+            {/* Savings */}
             {savings > 0 && (
               <View style={modalStyles.savingsCard}>
                 <Text style={modalStyles.savingsIcon}>💰</Text>
                 <View>
                   <Text style={modalStyles.savingsTitle}>
-                    Save {formatCurrency(savings)} with your plan
+                    Save up to {formatCurrency(savings)} with your plan
                   </Text>
-                  <Text style={modalStyles.savingsSubtitle}>
-                    vs. paying the full {formatCurrency(item.typical)} out-of-pocket
+                  <Text style={modalStyles.savingsSub}>
+                    vs. paying the full {formatCurrency(item.without)} out-of-pocket
                   </Text>
                 </View>
               </View>
@@ -329,29 +163,20 @@ const DetailModal = ({ item, visible, onClose, zipCode }) => {
             {/* Notes */}
             <View style={modalStyles.notesCard}>
               <Text style={modalStyles.notesTitle}>Important Notes</Text>
-              <Text style={modalStyles.notesText}>
-                • Costs are estimates based on typical in-network rates near {zipCode || 'your area'}.
-              </Text>
-              <Text style={modalStyles.notesText}>
-                • Your actual cost may vary by provider and treatment complexity.
-              </Text>
+              <Text style={modalStyles.notesText}>• Costs are estimates based on in-network rates near {zipCode || 'your area'}.</Text>
+              <Text style={modalStyles.notesText}>• Your actual cost may vary by provider and complexity of treatment.</Text>
               {item.deductibleApplies && (
-                <Text style={modalStyles.notesText}>
-                  • Your deductible must be met before the plan contributes to this service.
-                </Text>
+                <Text style={modalStyles.notesText}>• Your deductible must be met before plan benefits apply.</Text>
               )}
               {item.coverage === 0 && (
                 <Text style={[modalStyles.notesText, { color: colors.warning }]}>
-                  • This procedure is typically not covered under standard dental plans. Ask about financing options.
+                  • Orthodontic coverage varies by plan. Ask your employer about ortho benefits.
                 </Text>
               )}
-              <Text style={modalStyles.notesText}>
-                • Always verify costs with your dentist before treatment.
-              </Text>
+              <Text style={modalStyles.notesText}>• Always confirm costs with your dentist before treatment.</Text>
             </View>
           </ScrollView>
 
-          {/* CTA */}
           <TouchableOpacity style={modalStyles.cta} onPress={onClose} activeOpacity={0.85}>
             <Text style={modalStyles.ctaText}>Find an In-Network Dentist</Text>
           </TouchableOpacity>
@@ -362,11 +187,7 @@ const DetailModal = ({ item, visible, onClose, zipCode }) => {
 };
 
 const modalStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'flex-end',
-  },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.white,
     borderTopLeftRadius: 24,
@@ -376,170 +197,61 @@ const modalStyles = StyleSheet.create({
     maxHeight: '88%',
   },
   handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: colors.border,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginTop: 12,
-    marginBottom: 16,
+    width: 40, height: 4, backgroundColor: colors.border,
+    borderRadius: 2, alignSelf: 'center', marginTop: 12, marginBottom: 16,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
+  header: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 14 },
+  cdtBadge: {
+    backgroundColor: '#EBF7F4', borderRadius: 6,
+    paddingHorizontal: 9, paddingVertical: 5, marginRight: 12, marginTop: 2,
   },
-  cdtBig: {
-    backgroundColor: '#EBF2FA',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginRight: 12,
-    marginTop: 2,
-  },
-  cdtBigText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  headerText: {
-    flex: 1,
-  },
-  modalName: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 3,
-  },
-  modalCategory: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
+  cdtText: { fontSize: 12, fontWeight: '700', color: colors.secondary },
+  headerText: { flex: 1 },
+  name: { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 3 },
+  category: { fontSize: 13, color: colors.textSecondary },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 30, height: 30, borderRadius: 15,
+    backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center',
   },
-  closeX: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
+  closeX: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
   locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EBF2FA',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 16,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#EBF7F4', borderRadius: 8, padding: 10, marginBottom: 14,
   },
-  locationIcon: {
-    fontSize: 16,
-    marginRight: 8,
+  locationIcon: { fontSize: 14, marginRight: 8 },
+  locationText: { fontSize: 13, color: colors.secondary, fontWeight: '600' },
+  description: {
+    fontSize: 14, color: colors.textSecondary,
+    lineHeight: 20, marginBottom: 16,
   },
-  locationText: {
-    fontSize: 13,
-    color: colors.primary,
-    fontWeight: '600',
+  priceBlock: {
+    backgroundColor: colors.background, borderRadius: 12,
+    overflow: 'hidden', marginBottom: 14,
   },
-  breakdownCard: {
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 14,
+  priceRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', padding: 14,
   },
-  breakdownTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  breakdownRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  breakdownLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  breakdownValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  breakdownTotal: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: 10,
-    marginTop: 2,
-    marginBottom: 0,
-  },
-  breakdownTotalLabel: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  breakdownTotalValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.primary,
-  },
+  priceRowBorder: { borderTopWidth: 1, borderTopColor: colors.border },
+  priceLabel: { fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 2 },
+  priceNote: { fontSize: 12, color: colors.textSecondary },
+  priceWith: { fontSize: 18, fontWeight: '800', color: colors.primary },
+  priceWithout: { fontSize: 16, fontWeight: '700', color: colors.secondary },
   savingsCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F5EE',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 14,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#E8F5EE', borderRadius: 12, padding: 14, marginBottom: 14,
   },
-  savingsIcon: {
-    fontSize: 26,
-    marginRight: 12,
-  },
-  savingsTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.success,
-    marginBottom: 2,
-  },
-  savingsSubtitle: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  notesCard: {
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 20,
-  },
-  notesTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  notesText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    lineHeight: 18,
-    marginBottom: 4,
-  },
+  savingsIcon: { fontSize: 24, marginRight: 12 },
+  savingsTitle: { fontSize: 14, fontWeight: '800', color: colors.success, marginBottom: 2 },
+  savingsSub: { fontSize: 12, color: colors.textSecondary },
+  notesCard: { backgroundColor: colors.background, borderRadius: 12, padding: 14, marginBottom: 20 },
+  notesTitle: { fontSize: 13, fontWeight: '800', color: colors.text, marginBottom: 8 },
+  notesText: { fontSize: 12, color: colors.textSecondary, lineHeight: 18, marginBottom: 4 },
   cta: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: 4,
+    backgroundColor: colors.primary, borderRadius: 12,
+    paddingVertical: 15, alignItems: 'center', marginTop: 4,
   },
-  ctaText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.white,
-  },
+  ctaText: { fontSize: 15, fontWeight: '700', color: colors.white },
 });
 
 // ── Main Screen ────────────────────────────────────────────────────────────────
@@ -548,24 +260,14 @@ const PriceCheckerScreen = ({ navigation }) => {
   const [zipCode, setZipCode] = useState('');
   const [searchedZip, setSearchedZip] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
-  const [query, setQuery] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
 
   const filteredProcedures = useMemo(() => {
-    let list = PROCEDURES;
-    if (activeCategory !== 'All') {
-      list = list.filter((p) => p.category === activeCategory);
-    }
-    if (query.trim()) {
-      const q = query.trim().toLowerCase();
-      list = list.filter(
-        (p) => p.name.toLowerCase().includes(q) || p.cdt.toLowerCase().includes(q)
-      );
-    }
-    return list;
-  }, [activeCategory, query]);
+    if (activeCategory === 'All') return PROCEDURES;
+    return PROCEDURES.filter((p) => p.category === activeCategory);
+  }, [activeCategory]);
 
   const handleSearch = () => {
     if (zipCode.trim().length < 5) return;
@@ -573,166 +275,152 @@ const PriceCheckerScreen = ({ navigation }) => {
     setHasSearched(true);
   };
 
-  const handleProcedurePress = (item) => {
+  const handleRowPress = (item) => {
     setSelectedItem(item);
     setModalVisible(true);
   };
-
-  // Summary stats
-  const avgSavings = useMemo(() => {
-    if (!filteredProcedures.length) return 0;
-    const total = filteredProcedures.reduce((sum, p) => sum + calcSavings(p), 0);
-    return Math.round(total / filteredProcedures.length);
-  }, [filteredProcedures]);
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <View style={styles.headerTop}>
-          {navigation.canGoBack() && (
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Text style={styles.backArrow}>‹</Text>
-            </TouchableOpacity>
-          )}
-          <View style={styles.headerTitles}>
-            <Text style={styles.headerTitle}>Price Check</Text>
-            <Text style={styles.headerSubtitle}>Find dental costs in your area</Text>
-          </View>
-        </View>
-
-        {/* ZIP search */}
-        <View style={styles.searchRow}>
-          <View style={styles.zipInputWrap}>
-            <Text style={styles.zipIcon}>📍</Text>
-            <TextInput
-              style={styles.zipInput}
-              placeholder="Enter ZIP code"
-              placeholderTextColor="rgba(255,255,255,0.55)"
-              value={zipCode}
-              onChangeText={(t) => setZipCode(t.replace(/\D/g, '').slice(0, 5))}
-              keyboardType="number-pad"
-              maxLength={5}
-              returnKeyType="search"
-              onSubmitEditing={handleSearch}
-            />
-          </View>
-          <TouchableOpacity
-            style={[styles.searchBtn, zipCode.length < 5 && styles.searchBtnDisabled]}
-            onPress={handleSearch}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.searchBtnText}>Search</Text>
+        {navigation.canGoBack() && (
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Text style={styles.backArrow}>‹</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Summary strip */}
-        {hasSearched && (
-          <View style={styles.summaryStrip}>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{PROCEDURES.length}</Text>
-              <Text style={styles.summaryLabel}>Procedures</Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>272K+</Text>
-              <Text style={styles.summaryLabel}>Dentists</Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{formatCurrency(avgSavings)}</Text>
-              <Text style={styles.summaryLabel}>Avg Savings</Text>
-            </View>
-          </View>
         )}
+        <Text style={styles.headerTitle}>PriceCheck</Text>
       </View>
 
-      {/* Empty state */}
-      {!hasSearched ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>🦷</Text>
-          <Text style={styles.emptyTitle}>Check Dental Costs</Text>
-          <Text style={styles.emptySubtitle}>
-            Enter your ZIP code above to see in-network prices for common dental procedures near you — with and without your plan.
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        {/* Intro + ZIP search */}
+        <View style={styles.searchSection}>
+          <Text style={styles.intro}>
+            Enter your ZIP code to see a comparison of costs for common procedures when using a dentist that is{' '}
+            <Text style={styles.introHighlight}>in the Clear Care network</Text>
+            {' '}vs{' '}
+            <Text style={styles.introMuted}>out of network</Text>.
           </Text>
-          <View style={styles.emptyFeatures}>
-            {[
-              { icon: '✅', text: 'In-network pricing by location' },
-              { icon: '💰', text: 'Your plan savings shown upfront' },
-              { icon: '🔍', text: '272,000+ in-network dentists' },
-            ].map((f, i) => (
-              <View key={i} style={styles.featureRow}>
-                <Text style={styles.featureIcon}>{f.icon}</Text>
-                <Text style={styles.featureText}>{f.text}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      ) : (
-        <>
-          {/* Category filter + procedure search */}
-          <View style={styles.filterSection}>
-            <View style={styles.procSearchWrap}>
-              <Text style={styles.procSearchIcon}>🔍</Text>
+
+          <View style={styles.searchRow}>
+            <View style={styles.zipWrap}>
               <TextInput
-                style={styles.procSearchInput}
-                placeholder="Search procedures or CDT code..."
+                style={styles.zipInput}
+                placeholder="Zip Code"
                 placeholderTextColor={colors.textSecondary}
-                value={query}
-                onChangeText={setQuery}
+                value={zipCode}
+                onChangeText={(t) => setZipCode(t.replace(/\D/g, '').slice(0, 5))}
+                keyboardType="number-pad"
+                maxLength={5}
+                returnKeyType="search"
+                onSubmitEditing={handleSearch}
               />
-              {query.length > 0 && (
-                <TouchableOpacity onPress={() => setQuery('')}>
-                  <Text style={styles.clearBtn}>✕</Text>
+              {zipCode.length > 0 && (
+                <TouchableOpacity onPress={() => { setZipCode(''); setHasSearched(false); }} style={styles.clearBtn}>
+                  <Text style={styles.clearX}>✕</Text>
                 </TouchableOpacity>
               )}
             </View>
+            <TouchableOpacity
+              style={[styles.searchBtn, zipCode.length < 5 && styles.searchBtnDisabled]}
+              onPress={handleSearch}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.searchBtnText}>Search</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
+        {/* Results */}
+        {hasSearched ? (
+          <>
+            {/* Category filter */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.chipScroll}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10 }}
             >
               {CATEGORIES.map((cat) => (
-                <CategoryChip
+                <TouchableOpacity
                   key={cat}
-                  label={cat}
-                  active={activeCategory === cat}
+                  style={[styles.chip, activeCategory === cat && styles.chipActive]}
                   onPress={() => setActiveCategory(cat)}
-                />
+                  activeOpacity={0.75}
+                >
+                  <Text style={[styles.chipText, activeCategory === cat && styles.chipTextActive]}>
+                    {cat}
+                  </Text>
+                </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
 
-          {/* Results header */}
-          <View style={styles.resultsHeader}>
-            <Text style={styles.resultsCount}>
-              {filteredProcedures.length} procedure{filteredProcedures.length !== 1 ? 's' : ''}
-              {searchedZip ? ` near ${searchedZip}` : ''}
-            </Text>
-            <Text style={styles.resultsSub}>Tap any procedure for full breakdown</Text>
-          </View>
-
-          {/* List */}
-          <FlatList
-            data={filteredProcedures}
-            keyExtractor={(item) => String(item.id)}
-            renderItem={({ item }) => (
-              <ProcedureCard item={item} onPress={handleProcedurePress} />
-            )}
-            contentContainerStyle={styles.list}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <View style={styles.noResults}>
-                <Text style={styles.noResultsText}>No procedures match your search.</Text>
+            {/* Table */}
+            <View style={styles.table}>
+              {/* Table header */}
+              <View style={styles.tableHeader}>
+                <Text style={styles.tableHeaderLeft}>Service</Text>
+                <Text style={styles.tableHeaderRight}>Cost</Text>
               </View>
-            }
-          />
-        </>
-      )}
 
-      {/* Detail modal */}
+              {/* Table rows */}
+              {filteredProcedures.map((item, index) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[
+                    styles.tableRow,
+                    index === filteredProcedures.length - 1 && styles.tableRowLast,
+                  ]}
+                  onPress={() => handleRowPress(item)}
+                  activeOpacity={0.7}
+                >
+                  {/* Service column */}
+                  <View style={styles.serviceCol}>
+                    <Text style={styles.serviceName}>{item.name}</Text>
+                    <Text style={styles.serviceCdt}>{item.cdt}</Text>
+                  </View>
+
+                  {/* Cost column */}
+                  <View style={styles.costCol}>
+                    <Text style={styles.costWith}>
+                      {formatCurrency(item.withLow)} – {formatCurrency(item.withHigh)}
+                    </Text>
+                    <Text style={styles.costWithout}>
+                      {formatCurrency(item.without)} without Clear Care
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.disclaimer}>
+              Costs are estimates for in-network providers near {searchedZip}. Tap any row for a full breakdown.
+            </Text>
+          </>
+        ) : (
+          /* Empty state */
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>🦷</Text>
+            <Text style={styles.emptyTitle}>Check Dental Costs</Text>
+            <Text style={styles.emptySubtitle}>
+              Enter your ZIP code above to see how much you save with Clear Care vs paying out of pocket.
+            </Text>
+            <View style={styles.featureList}>
+              {[
+                { icon: '✅', text: 'In-network pricing by location' },
+                { icon: '💰', text: 'See your savings with Clear Care' },
+                { icon: '🔍', text: '272,000+ in-network dentists nationwide' },
+              ].map((f, i) => (
+                <View key={i} style={styles.featureRow}>
+                  <Text style={styles.featureIcon}>{f.icon}</Text>
+                  <Text style={styles.featureText}>{f.text}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+      </ScrollView>
+
       <DetailModal
         item={selectedItem}
         visible={modalVisible}
@@ -744,228 +432,140 @@ const PriceCheckerScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+
+  // Header
   header: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 18,
-  },
-  backBtn: {
-    marginRight: 10,
-    padding: 4,
-  },
-  backArrow: {
-    fontSize: 30,
-    color: colors.white,
-    lineHeight: 32,
-    fontWeight: '300',
-  },
-  headerTitles: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.white,
-    marginBottom: 2,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  zipInputWrap: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-  },
-  zipIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  zipInput: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.white,
-    fontWeight: '600',
-    padding: 0,
-    letterSpacing: 2,
-  },
-  searchBtn: {
-    backgroundColor: colors.secondary,
-    borderRadius: 10,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  searchBtnDisabled: {
-    opacity: 0.45,
-  },
-  searchBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.white,
-  },
-  summaryStrip: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 10,
-    padding: 12,
-    marginTop: 14,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  summaryItem: {
-    alignItems: 'center',
-  },
-  summaryValue: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.white,
-  },
-  summaryLabel: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 2,
-  },
-  summaryDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  // Empty state
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-    paddingBottom: 60,
-  },
-  emptyIcon: {
-    fontSize: 56,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 21,
-    marginBottom: 28,
-  },
-  emptyFeatures: {
-    alignSelf: 'stretch',
     backgroundColor: colors.white,
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  featureIcon: {
-    fontSize: 18,
-    marginRight: 12,
-    width: 28,
-  },
-  featureText: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '500',
-  },
-  // Filter section
-  filterSection: {
-    backgroundColor: colors.white,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
-  procSearchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginHorizontal: 16,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
-  procSearchIcon: {
-    fontSize: 15,
-    marginRight: 8,
+  backBtn: { marginRight: 8, padding: 4 },
+  backArrow: { fontSize: 28, color: colors.text, lineHeight: 30, fontWeight: '300' },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: colors.text },
+
+  // Search section
+  searchSection: {
+    backgroundColor: colors.white,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  procSearchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.text,
-    padding: 0,
-  },
-  clearBtn: {
+  intro: {
     fontSize: 14,
     color: colors.textSecondary,
-    padding: 4,
+    lineHeight: 21,
+    marginBottom: 16,
   },
-  chipScroll: {
-    marginBottom: 8,
+  introHighlight: { color: colors.secondary, fontWeight: '600' },
+  introMuted: { color: colors.textSecondary, fontWeight: '600' },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  zipWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: colors.white,
   },
-  // Results
-  resultsHeader: {
+  zipInput: {
+    flex: 1, fontSize: 15, color: colors.text,
+    padding: 0, letterSpacing: 1,
+  },
+  clearBtn: { padding: 4 },
+  clearX: { fontSize: 14, color: colors.textSecondary },
+  searchBtn: {
+    backgroundColor: colors.secondary,
+    borderRadius: 8,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+  },
+  searchBtnDisabled: { opacity: 0.4 },
+  searchBtnText: { fontSize: 14, fontWeight: '700', color: colors.white },
+
+  // Category chips
+  chipScroll: { backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.border },
+  chip: {
+    paddingHorizontal: 14, paddingVertical: 7,
+    borderRadius: 20, backgroundColor: colors.background,
+    borderWidth: 1.5, borderColor: colors.border, marginRight: 8,
+  },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+  chipTextActive: { color: colors.white },
+
+  // Table
+  table: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  tableHeaderLeft: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
+  tableHeaderRight: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
+  tableRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  resultsCount: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
+  tableRowLast: { borderBottomWidth: 0 },
+  serviceCol: { flex: 1, marginRight: 16 },
+  serviceName: { fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 3 },
+  serviceCdt: { fontSize: 12, fontWeight: '700', color: colors.secondary },
+  costCol: { alignItems: 'flex-end' },
+  costWith: { fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 3 },
+  costWithout: { fontSize: 12, color: colors.secondary, fontWeight: '600' },
+
+  disclaimer: {
+    fontSize: 12, color: colors.textSecondary,
+    textAlign: 'center', marginHorizontal: 20,
+    marginTop: 12, lineHeight: 17,
   },
-  resultsSub: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  list: {
-    paddingHorizontal: 16,
-    paddingBottom: 100,
-  },
-  noResults: {
+
+  // Empty state
+  emptyState: {
     alignItems: 'center',
-    paddingTop: 40,
+    paddingHorizontal: 32,
+    paddingTop: 48,
   },
-  noResultsText: {
-    fontSize: 14,
-    color: colors.textSecondary,
+  emptyIcon: { fontSize: 52, marginBottom: 16 },
+  emptyTitle: { fontSize: 20, fontWeight: '800', color: colors.text, marginBottom: 10, textAlign: 'center' },
+  emptySubtitle: {
+    fontSize: 14, color: colors.textSecondary,
+    textAlign: 'center', lineHeight: 21, marginBottom: 28,
   },
+  featureList: {
+    alignSelf: 'stretch', backgroundColor: colors.white,
+    borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.border,
+  },
+  featureRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  featureIcon: { fontSize: 18, marginRight: 12, width: 28 },
+  featureText: { fontSize: 14, color: colors.text, fontWeight: '500' },
 });
 
 export default PriceCheckerScreen;
