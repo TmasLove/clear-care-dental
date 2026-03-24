@@ -1,0 +1,40 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Backend API (dev)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "backend",
+      "port": 3001
+    },
+    {
+      "name": "Mobile App (Expo)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start"],
+      "cwd": "mobile",
+      "port": 8081
+    },
+    {
+      "name": "Mobile App - iOS",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "ios"],
+      "cwd": "mobile",
+      "port": 8081
+    },
+    {
+      "name": "Mobile App - Android",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "android"],
+      "cwd": "mobile",
+      "port": 8081
+    },
+    {
+      "name": "Mobile App - Web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "web"],
+      "cwd": "mobile",
+      "port": 8081
+    }
+  ]
+}
