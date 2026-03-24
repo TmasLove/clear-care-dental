@@ -2,7 +2,7 @@
 
 const jwt = require('jsonwebtoken');
 const { query } = require('../config/database');
-const { tokenBlacklist } = require('../routes/auth');
+const { tokenBlacklist } = require('../utils/tokenBlacklist');
 
 /**
  * Verify JWT from Authorization Bearer header and attach user to req.

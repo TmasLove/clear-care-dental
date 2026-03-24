@@ -8,12 +8,9 @@ const crypto = require('crypto');
 
 const { query } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
+const { tokenBlacklist } = require('../utils/tokenBlacklist');
 
 const router = express.Router();
-
-// In-memory token blacklist for logout invalidation.
-// TODO: Replace with Redis in production for distributed environments.
-const tokenBlacklist = new Set();
 
 const SALT_ROUNDS = 10;
 
@@ -276,4 +273,3 @@ router.get('/me', authenticateToken, async (req, res, next) => {
 });
 
 module.exports = router;
-module.exports.tokenBlacklist = tokenBlacklist;
