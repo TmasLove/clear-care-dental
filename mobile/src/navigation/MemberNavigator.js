@@ -12,6 +12,7 @@ import ClaimsHistoryScreen from '../screens/member/ClaimsHistoryScreen';
 import ClaimDetailScreen from '../screens/member/ClaimDetailScreen';
 import SharePlanScreen from '../screens/member/SharePlanScreen';
 import MemberSupportScreen from '../screens/member/SupportScreen';
+import PriceCheckerScreen from '../screens/member/PriceCheckerScreen';
 import ProfileScreen from '../screens/shared/ProfileScreen';
 import NotificationsScreen from '../screens/shared/NotificationsScreen';
 
@@ -23,8 +24,8 @@ const TabIcon = ({ name, focused }) => {
     Home: '🏠',
     FindDentist: '🔍',
     Claims: '📋',
+    PriceCheck: '💰',
     SharePlan: '📤',
-    Support: '🎧',
   };
   return (
     <View style={{ alignItems: 'center' }}>
@@ -45,6 +46,7 @@ const HomeStack = () => (
     <Stack.Screen name="DentistDetail" component={DentistDetailScreen} />
     <Stack.Screen name="Claims" component={ClaimsHistoryScreen} />
     <Stack.Screen name="ClaimDetail" component={ClaimDetailScreen} />
+    <Stack.Screen name="PriceCheck" component={PriceCheckerScreen} />
   </Stack.Navigator>
 );
 
@@ -107,14 +109,14 @@ const MemberNavigator = () => (
       options={{ tabBarLabel: 'Claims' }}
     />
     <Tab.Screen
+      name="PriceCheck"
+      component={PriceCheckerScreen}
+      options={{ tabBarLabel: 'Price Check' }}
+    />
+    <Tab.Screen
       name="SharePlan"
       component={ShareStack}
       options={{ tabBarLabel: 'My Plan' }}
-    />
-    <Tab.Screen
-      name="Support"
-      component={MemberSupportScreen}
-      options={{ tabBarLabel: 'Support' }}
     />
   </Tab.Navigator>
 );

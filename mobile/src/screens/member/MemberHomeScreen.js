@@ -235,9 +235,9 @@ const MemberHomeScreen = ({ navigation }) => {
               color={colors.secondary}
             />
             <QuickAction
-              icon="🎧"
-              label="Support"
-              onPress={() => navigation.navigate('Support')}
+              icon="💰"
+              label="Price Check"
+              onPress={() => navigation.navigate('PriceCheck')}
               color={colors.accent}
             />
           </View>
